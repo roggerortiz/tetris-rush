@@ -1,6 +1,7 @@
-export enum EventMovement {
+export enum EventKey {
   LEFT = 'ArrowLeft',
   RIGHT = 'ArrowRight',
   UP = 'ArrowUp',
-  DOWN = 'ArrowDown'
+  DOWN = 'ArrowDown',
+  SPACE = ' '
 }

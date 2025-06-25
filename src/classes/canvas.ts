@@ -8,10 +8,14 @@ export class Canvas {
   private context: CanvasRenderingContext2D | null = null
   private board: Board = new Board()
   private piece: Piece = new Piece()
-  private dropTime: number = 0
-  private lastTime: number = 0
+  gameOver: boolean = false
 
-  constructor() {
+  getScore() {
+    return this.board.score
+  }
+
+  create() {
+    this.gameOver = false
     this.canvas = document.querySelector('canvas')
     this.context = this.canvas?.getContext('2d') ?? null
 
@@ -19,24 +23,7 @@ export class Canvas {
       this.canvas.width = BLOCK_SIZE * BOARD_WIDTH
       this.canvas.height = BLOCK_SIZE * BOARD_HEIGHT
       this.context.scale(BLOCK_SIZE, BLOCK_SIZE)
-    }
-  }
-
-  draw(time: number) {
-    this.autoDrop(time)
-    this.drawBoard()
-    this.drawPiece()
-  }
-
-  autoDrop(time: number) {
-    const deltaTime: number = time - this.lastTime
-
-    this.lastTime = time
-    this.dropTime += deltaTime
-
-    if (this.dropTime > 1000) {
-      this.updatePiece({ down: true })
-      this.dropTime = 0
+      this.drawBoard()
     }
   }
 
@@ -106,6 +93,7 @@ export class Canvas {
     if (pressed.down) {
       if (this.detectCollisions(new Piece())) {
         this.board.reset()
+        this.gameOver = true
         return
       }
 
