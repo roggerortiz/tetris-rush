@@ -1,4 +1,5 @@
 import { getCenterPosition, getRandomColor, getRandomShape } from '../helpers/utils'
+import type { TPressed } from '../types/pressed'
 
 export class Piece {
   color: string = ''
@@ -15,6 +16,20 @@ export class Piece {
     this.shape = getRandomShape()
     this.positionX = getCenterPosition(this.shape[0].length)
     this.positionY = 0
+  }
+
+  move (pressed: TPressed) {
+    if (pressed.left) {
+      this.positionX--
+    }
+
+    if (pressed.right) {
+      this.positionX++
+    }
+
+    if (pressed.down) {
+      this.positionY++
+    }
   }
 
   rotate() {

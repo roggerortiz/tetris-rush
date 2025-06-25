@@ -1,14 +1,14 @@
 import { BOARD_HEIGHT, BOARD_WIDTH } from './constants'
 import { COLORS, PIECES } from './data'
 
-export const getEmptyBoardRow = () => {
-  return Array(BOARD_WIDTH).fill({ value: 0 })
-}
-
 export const getEmptyBoard = () => {
   return Array(BOARD_HEIGHT)
     .fill([])
     .map(() => getEmptyBoardRow())
+}
+
+export const getEmptyBoardRow = () => {
+  return Array(BOARD_WIDTH).fill({ value: 0, color: '' })
 }
 
 export const getRandomColor = (): string => {

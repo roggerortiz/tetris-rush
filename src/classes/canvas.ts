@@ -1,4 +1,4 @@
-import { BLOCK_SIZE, BOARD_FILL_COLOR, BOARD_HEIGHT, BOARD_STRIKE_COLOR, BOARD_WIDTH } from '../helpers/constants'
+import { BLOCK_FILL_COLOR, BLOCK_SIZE, BLOCK_STRIKE_COLOR, BOARD_HEIGHT, BOARD_WIDTH } from '../helpers/constants'
 import { type TPressed } from '../types/pressed'
 import { Board } from './board'
 import { Piece } from './piece'
@@ -46,7 +46,7 @@ export class Canvas {
         if (value === 1) {
           this.drawBlock(x, y, color)
         } else {
-          this.drawBlock(x, y)
+          this.drawBlock(x, y, BLOCK_FILL_COLOR)
         }
       })
     })
@@ -62,63 +62,56 @@ export class Canvas {
     })
   }
 
-  drawBlock(positionX: number, positionY: number, color?: string) {
+  drawBlock(x: number, y: number, color: string) {
     if (!this.context) {
       return
     }
 
     this.context.lineWidth = 1 / BLOCK_SIZE
-    this.context.strokeStyle = BOARD_STRIKE_COLOR
-    this.context.strokeRect(positionX, positionY, 1, 1)
+    this.context.strokeStyle = BLOCK_STRIKE_COLOR
+    this.context.strokeRect(x, y, 1, 1)
 
-    this.context.fillStyle = color || BOARD_FILL_COLOR
-    this.context.fillRect(positionX, positionY, 1, 1)
+    this.context.fillStyle = color
+    this.context.fillRect(x, y, 1, 1)
   }
 
-  detectCollisions() {
-    return this.piece.shape.some((row, y) => {
+  detectCollisions(piece: Piece) {
+    return piece.shape.some((row, y) => {
       return row.some((value, x) => {
-        return value === 1 && this.board.shape[y + this.piece.positionY]?.[x + this.piece.positionX]?.value !== 0
+        return value === 1 && this.board.shape[y + piece.positionY]?.[x + piece.positionX]?.value !== 0
       })
     })
   }
 
-  updatePiece (pressed: TPressed) {
-    if (pressed.left) {
-      this.piece.positionX--
-      if (this.detectCollisions()) {
-        this.piece.positionX++
-      }
+  updatePiece(pressed: TPressed) {
+    const piece = new Piece()
+    piece.shape = this.piece.shape
+    piece.positionX = this.piece.positionX
+    piece.positionY = this.piece.positionY
+
+    if (!pressed.up) {
+      piece.move(pressed)
+    } else {
+      piece.rotate()
     }
 
-    if (pressed.right) {
-      this.piece.positionX++
-      if (this.detectCollisions()) {
-        this.piece.positionX--
-      }
+    if (!this.detectCollisions(piece)) {
+      this.piece.shape = piece.shape
+      this.piece.positionX = piece.positionX
+      this.piece.positionY = piece.positionY
+
+      return
     }
 
     if (pressed.down) {
-      this.piece.positionY++
-      if (this.detectCollisions()) {
-        this.piece.positionY--
-
-        this.board.solidifyPiece(this.piece)
-        this.board.removeRows()
-        this.piece.reset()
-
-        if (this.detectCollisions()) {
-          this.board.reset()
-        }
+      if (this.detectCollisions(new Piece())) {
+        this.board.reset()
+        return
       }
-    }
 
-    if (pressed.up) {
-      const prevShape: number[][] = this.piece.shape
-      this.piece.rotate()
-      if (this.detectCollisions()) {
-        this.piece.shape = prevShape
-      }
+      this.board.solidifyPiece(this.piece)
+      this.board.removeRows()
+      this.piece.reset()
     }
   }
 }
