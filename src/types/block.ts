@@ -1,4 +1,4 @@
-export type TBlock = {
+export type Block = {
   value: number
   color: string
 }

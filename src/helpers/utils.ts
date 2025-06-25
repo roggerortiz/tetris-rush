@@ -1,14 +1,25 @@
+import type { Block } from '../types/block'
+import type { Piece } from '../types/piece'
 import { BOARD_HEIGHT, BOARD_WIDTH } from './constants'
 import { COLORS, PIECES } from './data'
 
-export const getEmptyBoard = () => {
+export const getEmptyBoard = (): Block[][] => {
   return Array(BOARD_HEIGHT)
     .fill([])
     .map(() => getEmptyBoardRow())
 }
 
-export const getEmptyBoardRow = () => {
+export const getEmptyBoardRow = (): Block[] => {
   return Array(BOARD_WIDTH).fill({ value: 0, color: '' })
+}
+
+export const getNewPiece = (): Piece => {
+  const color: string = getRandomColor()
+  const shape: number[][] = getRandomShape()
+  const positionX: number = getCenterPosition(shape[0].length)
+  const positionY: number = 0
+
+  return { color, shape, positionX, positionY }
 }
 
 export const getRandomColor = (): string => {

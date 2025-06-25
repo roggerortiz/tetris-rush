@@ -1,4 +1,4 @@
-export type TPressed = {
+export type Pressed = {
   up?: boolean
   down?: boolean
   left?: boolean

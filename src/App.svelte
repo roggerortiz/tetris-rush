@@ -1,19 +1,42 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { Canvas } from './classes/canvas'
+  import {
+    BLOCK_FILL_COLOR,
+    BLOCK_SIZE,
+    BLOCK_STRIKE_COLOR,
+    BOARD_HEIGHT,
+    BOARD_SCORE,
+    BOARD_WIDTH
+  } from './helpers/constants'
   import { EventKey } from './helpers/enums'
+  import { getEmptyBoard, getEmptyBoardRow, getNewPiece } from './helpers/utils'
   import Pause from './icons/pause.svelte'
   import Play from './icons/play.svelte'
-  import type { TPressed } from './types/pressed'
+  import type { Block } from './types/block'
+  import type { Piece } from './types/piece'
+  import type { Pressed } from './types/pressed'
 
-  let canvas: Canvas = new Canvas()
-  let score: number = $state(0)
-  let dropTime: number = $state(0)
-  let lastTime: number = $state(0)
-  let playing: boolean = $state(false)
+  let canvas: HTMLCanvasElement | null = $state<HTMLCanvasElement | null>(null)
+  let context: CanvasRenderingContext2D | null = $state<CanvasRenderingContext2D | null>(null)
+  let board: Block[][] = $state<Block[][]>(getEmptyBoard())
+  let tempPiece: Piece | null = $state<Piece | null>(null)
+  let piece: Piece | null = $state<Piece | null>(null)
+  let playing: boolean = $state<boolean>(false)
+  let gameOver: boolean = $state<boolean>(false)
+  let score: number = $state<number>(0)
+  let dropTime: number = $state<number>(0)
+  let lastTime: number = $state<number>(0)
 
   onMount(() => {
-    canvas.create()
+    canvas = document.querySelector('canvas')
+    context = canvas?.getContext('2d') ?? null
+
+    if (canvas && context) {
+      canvas.width = BLOCK_SIZE * BOARD_WIDTH
+      canvas.height = BLOCK_SIZE * BOARD_HEIGHT
+      context.scale(BLOCK_SIZE, BLOCK_SIZE)
+      drawBoard()
+    }
   })
 
   const onKeyDown = ({ key }: KeyboardEvent) => {
@@ -34,24 +57,21 @@
     playing = !playing
 
     if (playing) {
+      piece = getNewPiece()
       playingGame()
     }
   }
 
   const playingGame = (time: number = 0) => {
-    if (canvas.gameOver) {
-      playing = false
+    if (!playing || gameOver) {
       return
     }
 
     autoDrop(time)
-    canvas.drawBoard()
-    canvas.drawPiece()
-    score = canvas.getScore()
+    drawBoard()
+    drawPiece()
 
-    if (playing) {
-      window.requestAnimationFrame(playingGame)
-    }
+    window.requestAnimationFrame(playingGame)
   }
 
   const autoDrop = (time: number) => {
@@ -66,8 +86,166 @@
     }
   }
 
-  const updatePiece = (pressed: TPressed) => {
-    canvas.updatePiece(pressed)
+  const drawBoard = () => {
+    board.forEach((row, y) => {
+      row.forEach(({ value, color }, x) => {
+        if (value === 1) {
+          drawBlock(x, y, color)
+        } else {
+          drawBlock(x, y, BLOCK_FILL_COLOR)
+        }
+      })
+    })
+  }
+
+  const drawPiece = () => {
+    if (!piece) {
+      return
+    }
+
+    const color: string = piece.color
+    const positionX: number = piece.positionX
+    const positionY: number = piece.positionY
+
+    piece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value === 1 && piece) {
+          drawBlock(x + positionX, y + positionY, color)
+        }
+      })
+    })
+  }
+
+  const drawBlock = (x: number, y: number, color: string) => {
+    if (!context) {
+      return
+    }
+
+    context.lineWidth = 1 / BLOCK_SIZE
+    context.strokeStyle = BLOCK_STRIKE_COLOR
+    context.strokeRect(x, y, 1, 1)
+
+    context.fillStyle = color
+    context.fillRect(x, y, 1, 1)
+  }
+
+  const updatePiece = (pressed: Pressed) => {
+    if (!piece) {
+      return
+    }
+
+    tempPiece = { ...piece }
+
+    if (!pressed.up) {
+      tempPiece = movePiece(tempPiece, pressed)
+    } else {
+      tempPiece = rotatePiece(tempPiece)
+    }
+
+    if (!detectCollisions(tempPiece)) {
+      piece = { ...tempPiece }
+      tempPiece = null
+      return
+    }
+
+    if (!pressed.down) {
+      tempPiece = null
+      return
+    }
+
+    solidifyPiece()
+    removeRows()
+
+    tempPiece = getNewPiece()
+
+    if (!detectCollisions(tempPiece)) {
+      piece = { ...tempPiece }
+      tempPiece = null
+      return
+    }
+
+    while (tempPiece.positionY >= 0 && detectCollisions(tempPiece)) {
+      tempPiece.positionY--
+    }
+
+    piece = { ...tempPiece }
+    tempPiece = null
+    gameOver = true
+  }
+
+  const movePiece = (piece: Piece, pressed: Pressed) => {
+    if (pressed.left) {
+      piece.positionX--
+    }
+
+    if (pressed.right) {
+      piece.positionX++
+    }
+
+    if (pressed.down) {
+      piece.positionY++
+    }
+
+    return piece
+  }
+
+  const rotatePiece = (piece: Piece) => {
+    const rotatedShape: number[][] = []
+
+    for (let i = 0; i < piece.shape[0].length; i++) {
+      const row: number[] = []
+
+      for (let j = piece.shape.length - 1; j >= 0; j--) {
+        row.push(piece.shape[j][i])
+      }
+
+      rotatedShape.push(row)
+    }
+
+    piece.shape = rotatedShape
+    return piece
+  }
+
+  const detectCollisions = (piece: Piece) => {
+    return piece.shape.some((row, y) => {
+      return row.some((value, x) => {
+        return value === 1 && board[y + piece.positionY]?.[x + piece.positionX]?.value !== 0
+      })
+    })
+  }
+
+  const solidifyPiece = () => {
+    if (!piece) {
+      return
+    }
+
+    const color: string = piece.color
+    const positionX: number = piece.positionX
+    const positionY: number = piece.positionY
+
+    piece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value === 1) {
+          board[y + positionY][x + positionX] = { value: 1, color }
+        }
+      })
+    })
+  }
+
+  const removeRows = () => {
+    const rowsToRemove: any[] = []
+
+    board.forEach((row, y) => {
+      if (row.every(({ value }) => value === 1)) {
+        rowsToRemove.push(y)
+      }
+    })
+
+    rowsToRemove.forEach((y) => {
+      board.splice(y, 1)
+      board.unshift(getEmptyBoardRow())
+      score += BOARD_SCORE
+    })
   }
 </script>
 
