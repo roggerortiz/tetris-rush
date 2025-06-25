@@ -1,14 +1,29 @@
-import { BOARD_DEFAULT_SCORE, BOARD_HEIGHT, BOARD_WIDTH } from '../helpers/constants'
-import type { Block } from '../types/block'
+import { BOARD_DEFAULT_SCORE } from '../helpers/constants'
+import { getEmptyBoard, getEmptyBoardRow } from '../helpers/utils'
+import type { TBlock } from '../types/block'
+import { Piece } from './piece'
 
 export class Board {
-  shape: Block[][] = []
   score: number = 0
+  shape: TBlock[][] = []
 
   constructor() {
-    this.shape = Array(BOARD_HEIGHT)
-      .fill([])
-      .map(() => Array(BOARD_WIDTH).fill({ value: 0 }))
+    this.reset()
+  }
+
+  reset() {
+    this.score = 0
+    this.shape = getEmptyBoard()
+  }
+
+  solidifyPiece(piece: Piece) {
+    piece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value === 1) {
+          this.shape[y + piece.positionY][x + piece.positionX] = { value: 1, color: piece.color }
+        }
+      })
+    })
   }
 
   removeRows() {
@@ -22,7 +37,7 @@ export class Board {
 
     rowsToRemove.forEach((y) => {
       this.shape.splice(y, 1)
-      this.shape.unshift(Array(BOARD_WIDTH).fill(0))
+      this.shape.unshift(getEmptyBoardRow())
       this.score += BOARD_DEFAULT_SCORE
     })
   }

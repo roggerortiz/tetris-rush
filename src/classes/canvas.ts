@@ -1,5 +1,5 @@
 import { BLOCK_SIZE, BOARD_FILL_COLOR, BOARD_HEIGHT, BOARD_STRIKE_COLOR, BOARD_WIDTH } from '../helpers/constants'
-import { defaultPressed, type Pressed } from '../types/pressed'
+import { type TPressed } from '../types/pressed'
 import { Board } from './board'
 import { Piece } from './piece'
 
@@ -35,7 +35,7 @@ export class Canvas {
     this.dropTime += deltaTime
 
     if (this.dropTime > 1000) {
-      this.movePiece({ ...defaultPressed, down: true })
+      this.updatePiece({ down: true })
       this.dropTime = 0
     }
   }
@@ -75,43 +75,50 @@ export class Canvas {
     this.context.fillRect(positionX, positionY, 1, 1)
   }
 
-  detectCollisions(pressed: Pressed) {
-    let directionX: number = pressed.left ? -1 : pressed.right ? 1 : 0
-    let directionY: number = pressed.up ? -1 : pressed.down ? 1 : 0
-    let positionX: number = this.piece.positionX + directionX
-    let positionY: number = this.piece.positionY + directionY
-
-    const collided: boolean = this.piece.shape.some((row, y) => {
+  detectCollisions() {
+    return this.piece.shape.some((row, y) => {
       return row.some((value, x) => {
-        return value === 1 && this.board.shape[y + positionY]?.[x + positionX]?.value !== 0
+        return value === 1 && this.board.shape[y + this.piece.positionY]?.[x + this.piece.positionX]?.value !== 0
       })
     })
-
-    if (!collided) {
-      this.piece.directionX = directionX
-      this.piece.directionY = directionY
-    }
-
-    return collided
   }
 
-  movePiece(pressed: Pressed) {
-    if (!this.detectCollisions(pressed)) {
-      this.piece.move()
-    } else if (pressed.down) {
-      this.solidifyPiece()
+  updatePiece (pressed: TPressed) {
+    if (pressed.left) {
+      this.piece.positionX--
+      if (this.detectCollisions()) {
+        this.piece.positionX++
+      }
     }
-  }
 
-  solidifyPiece() {
-    this.piece.shape.forEach((row, y) => {
-      row.forEach((value, x) => {
-        if (value === 1) {
-          this.board.shape[y + this.piece.positionY][x + this.piece.positionX] = { value: 1, color: this.piece.color }
+    if (pressed.right) {
+      this.piece.positionX++
+      if (this.detectCollisions()) {
+        this.piece.positionX--
+      }
+    }
+
+    if (pressed.down) {
+      this.piece.positionY++
+      if (this.detectCollisions()) {
+        this.piece.positionY--
+
+        this.board.solidifyPiece(this.piece)
+        this.board.removeRows()
+        this.piece.reset()
+
+        if (this.detectCollisions()) {
+          this.board.reset()
         }
-      })
-    })
-    this.piece.reset()
-    this.board.removeRows()
+      }
+    }
+
+    if (pressed.up) {
+      const prevShape: number[][] = this.piece.shape
+      this.piece.rotate()
+      if (this.detectCollisions()) {
+        this.piece.shape = prevShape
+      }
+    }
   }
 }

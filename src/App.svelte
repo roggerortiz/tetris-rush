@@ -11,7 +11,7 @@
   })
 
   const onKeyDown = ({ key }: KeyboardEvent) => {
-    canvas.movePiece({
+    canvas.updatePiece({
       up: key === EventMovement.UP,
       down: key === EventMovement.DOWN,
       left: key === EventMovement.LEFT,
