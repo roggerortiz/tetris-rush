@@ -12,6 +12,8 @@
   import { getEmptyBoard, getEmptyBoardRow, getNewPiece } from './helpers/utils'
   import Pause from './icons/pause.svelte'
   import Play from './icons/play.svelte'
+  import ResetLarge from './icons/reset-large.svelte'
+  import ResetSmall from './icons/reset-small.svelte'
   import type { Block } from './types/block'
   import type { Piece } from './types/piece'
   import type { Pressed } from './types/pressed'
@@ -56,8 +58,11 @@
   const togglePlay = () => {
     playing = !playing
 
-    if (playing) {
+    if (!piece) {
       piece = getNewPiece()
+    }
+
+    if (playing) {
       playingGame()
     }
   }
@@ -247,27 +252,57 @@
       score += BOARD_SCORE
     })
   }
+
+  const resetGame = () => {
+    board = getEmptyBoard()
+    piece = getNewPiece()
+    tempPiece = null
+    playing = true
+    gameOver = false
+    score = 0
+    dropTime = 0
+    lastTime = 0
+    playingGame()
+  }
 </script>
 
 <main class="relative flex flex-col gap-1 p-2">
   <header class="flex justify-between text-gray-300">
     <span>Score: {score}</span>
-    <button
-      class="flex justify-center items-center rounded-full size-5 bg-neutral-700 cursor-pointer"
-      onclick={togglePlay}
-    >
-      <Pause />
-    </button>
-  </header>
-  <canvas class="bg-zinc-950 border border-gray-700 rounded"></canvas>
-  {#if !playing}
-    <section class="absolute top-0 left-0 w-full h-full flex justify-center items-center bg-neutral-800/90 rounded">
+    <div class="flex gap-1">
       <button
-        class="flex gap-2 items-center cursor-pointer transition-all px-8 py-2 text-2xl text-gray-300 hover:text-gray-100 hover:scale-110"
+        class="flex justify-center items-center rounded-full size-5 bg-neutral-700 cursor-pointer"
         onclick={togglePlay}
       >
-        <Play /> Play
+        <Pause />
       </button>
+      <button
+        class="flex justify-center items-center rounded-full size-5 bg-neutral-700 cursor-pointer"
+        onclick={resetGame}
+        title="Reset game"
+      >
+        <ResetSmall />
+      </button>
+    </div>
+  </header>
+  <canvas class="bg-zinc-950 border border-gray-700 rounded"></canvas>
+  {#if !playing || gameOver}
+    <section class="absolute top-0 left-0 w-full h-full flex justify-center items-center bg-neutral-800/90 rounded">
+      {#if !gameOver}
+        <button
+          class="flex gap-2 items-center cursor-pointer transition-all px-8 py-2 text-2xl text-gray-300 hover:text-gray-100 hover:scale-110"
+          onclick={togglePlay}
+        >
+          <Play /> Play
+        </button>
+      {:else}
+        <button
+          class="flex gap-2 items-center cursor-pointer transition-all px-8 py-2 text-2xl text-gray-300 hover:text-gray-100 hover:scale-110"
+          onclick={resetGame}
+        >
+          <ResetLarge /> Game over!
+        </button>
+      {/if}
     </section>
   {/if}
 </main>
